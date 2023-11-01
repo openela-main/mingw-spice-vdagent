@@ -1,0 +1,26 @@
+From 2aa6f16af4ad2d50ab614dd87b10baae1729c461 Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Thu, 24 May 2018 14:01:53 +0100
+Subject: [PATCH 04/43] vdagent: Removed unused declaration
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Christophe Fergeau <cfergeau@redhat.com>
+---
+ vdagent/vdagent.cpp | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/vdagent/vdagent.cpp b/vdagent/vdagent.cpp
+index f00fbf5..0a364df 100644
+--- a/vdagent/vdagent.cpp
++++ b/vdagent/vdagent.cpp
+@@ -99,7 +99,6 @@ private:
+     void dispatch_message(VDAgentMessage* msg, uint32_t port);
+     uint32_t get_clipboard_format(uint32_t type) const;
+     uint32_t get_clipboard_type(uint32_t format) const;
+-    DWORD get_cximage_format(uint32_t type) const;
+     enum { owner_none, owner_guest, owner_client };
+     void set_clipboard_owner(int new_owner);
+     enum { CONTROL_STOP, CONTROL_RESET, CONTROL_DESKTOP_SWITCH, CONTROL_LOGON, CONTROL_CLIPBOARD };
+-- 
+2.17.1
+

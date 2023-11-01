@@ -1,0 +1,36 @@
+From 9264c7f367e44ce2d4e773add80b63e1777e3e0f Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Thu, 5 Jul 2018 16:13:00 +0100
+Subject: [PATCH 42/43] vdagent: Add a comment around WinSta0_DesktopSwitch
+ event usage
+
+Multiple times while I was reading this code was not clear why the
+synchronization of this event was not done in the main event loop.
+Also document why we want to use it not relying just on
+WTSRegisterSessionNotification and WM_WTSSESSION_CHANGE.
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Christophe Fergeau <cfergeau@redhat.com>
+---
+ vdagent/vdagent.cpp | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/vdagent/vdagent.cpp b/vdagent/vdagent.cpp
+index e577679..be17ddc 100644
+--- a/vdagent/vdagent.cpp
++++ b/vdagent/vdagent.cpp
+@@ -232,6 +232,11 @@ VDAgent::~VDAgent()
+ DWORD WINAPI VDAgent::event_thread_proc(LPVOID param)
+ {
+     VDAgent *agent = static_cast<VDAgent *>(param);
++    // This event is monitored in a separate thread to avoid losing
++    // events as the event is signaled with PulseEvent to wake up all
++    // thread waiting for it.
++    // This event allows to detect desktop switches which do not
++    // change sessions like pressing Ctrl-Alt-Delete.
+     HANDLE desktop_event = OpenEvent(SYNCHRONIZE, FALSE, L"WinSta0_DesktopSwitch");
+     if (!desktop_event) {
+         vd_printf("OpenEvent() failed: %lu", GetLastError());
+-- 
+2.17.1
+

@@ -1,0 +1,103 @@
+From 97ef38dc6d69a14365b1245e9a6406105a033a8a Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Mon, 28 May 2018 16:04:34 +0100
+Subject: [PATCH 28/43] Use always TCHAR to read string from registry
+
+This is a preparation patch in order to factor out code to read
+a string from registry.
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Jonathon Jongsma <jjongsma@redhat.com>
+---
+ vdagent/display_setting.cpp | 30 ++++++++++++++++--------------
+ 1 file changed, 16 insertions(+), 14 deletions(-)
+
+diff --git a/vdagent/display_setting.cpp b/vdagent/display_setting.cpp
+index 2b22144..cef3401 100644
+--- a/vdagent/display_setting.cpp
++++ b/vdagent/display_setting.cpp
+@@ -339,15 +339,15 @@ bool DisplaySetting::disable_font_smoothing()
+ 
+ bool DisplaySetting::reload_font_smoothing(HKEY desktop_reg_key)
+ {
+-    CHAR smooth_value[4];
+-    DWORD value_size = sizeof(smooth_value)-1;
++    TCHAR smooth_value[4];
++    DWORD value_size = sizeof(smooth_value)-sizeof(smooth_value[0]);
+     DWORD value_type;
+     LONG status;
+     BOOL cur_font_smooth;
+ 
+     vd_printf("");
+-    status = RegQueryValueExA(desktop_reg_key, "FontSmoothing", NULL,
+-                              &value_type, (LPBYTE)smooth_value, &value_size);
++    status = RegQueryValueEx(desktop_reg_key, TEXT("FontSmoothing"), NULL,
++                             &value_type, (LPBYTE)smooth_value, &value_size);
+     if (status != ERROR_SUCCESS) {
+         vd_printf("RegQueryValueEx(FontSmoothing) : fail %ld", status);
+         return false;
+@@ -358,15 +358,16 @@ bool DisplaySetting::reload_font_smoothing(HKEY desktop_reg_key)
+         return false;
+     }
+ 
++    value_size /= sizeof(smooth_value[0]);
+     if (!value_size || smooth_value[value_size - 1] != '\0') {
+         smooth_value[value_size] = '\0';
+     }
+ 
+-    if (strcmp(smooth_value, "0") == 0) {
++    if (_tcscmp(smooth_value, TEXT("0")) == 0) {
+         vd_printf("font smoothing is disabled in registry. do nothing");
+         return true;
+-    } else if (strcmp(smooth_value, "2") != 0) {
+-        vd_printf("unexpectd font smoothing value %s", smooth_value);
++    } else if (_tcscmp(smooth_value, TEXT("2")) != 0) {
++        vd_printf("unexpectd font smoothing value %ls", smooth_value);
+         return false;
+     }
+ 
+@@ -412,8 +413,8 @@ bool DisplaySetting::disable_animation()
+ bool DisplaySetting::reload_win_animation(HKEY desktop_reg_key)
+ {
+     HKEY win_metrics_hkey;
+-    CHAR win_anim_value[4];
+-    DWORD value_size = sizeof(win_anim_value)-1;
++    TCHAR win_anim_value[4];
++    DWORD value_size = sizeof(win_anim_value)-sizeof(win_anim_value[0]);
+     DWORD value_type;
+     LONG status;
+     ANIMATIONINFO active_win_animation;
+@@ -427,8 +428,8 @@ bool DisplaySetting::reload_win_animation(HKEY desktop_reg_key)
+         return false;
+     }
+ 
+-    status = RegQueryValueExA(win_metrics_hkey, "MinAnimate", NULL,
+-                              &value_type, (LPBYTE)win_anim_value, &value_size);
++    status = RegQueryValueEx(win_metrics_hkey, TEXT("MinAnimate"), NULL,
++                             &value_type, (LPBYTE)win_anim_value, &value_size);
+     if (status != ERROR_SUCCESS) {
+         vd_printf("RegQueryValueEx(MinAnimate) : fail %ld", status);
+         RegCloseKey(win_metrics_hkey);
+@@ -442,15 +443,16 @@ bool DisplaySetting::reload_win_animation(HKEY desktop_reg_key)
+         return false;
+     }
+ 
++    value_size /= sizeof(win_anim_value[0]);
+     if (!value_size || win_anim_value[value_size - 1] != '\0') {
+         win_anim_value[value_size] = '\0';
+     }
+ 
+-    if (!strcmp(win_anim_value, "0")) {
++    if (!_tcscmp(win_anim_value, TEXT("0"))) {
+         vd_printf("window animation is disabled in registry. do nothing");
+         return true;
+-    }  else if (strcmp(win_anim_value, "1") != 0) {
+-        vd_printf("unexpectd window animation value %s", win_anim_value);
++    }  else if (_tcscmp(win_anim_value, TEXT("1")) != 0) {
++        vd_printf("unexpectd window animation value %ls", win_anim_value);
+         return false;
+     }
+     active_win_animation.cbSize = sizeof(ANIMATIONINFO);
+-- 
+2.17.1
+

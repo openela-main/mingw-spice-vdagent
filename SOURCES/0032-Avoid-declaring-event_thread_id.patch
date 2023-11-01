@@ -1,0 +1,37 @@
+From c0a6e42e809a5d177c4863ae24e43cf523ab0b4b Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Sat, 30 Jun 2018 09:05:08 +0100
+Subject: [PATCH 32/43] Avoid declaring event_thread_id
+
+As the value is never used we can pass NULL in CreateThread.
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Jonathon Jongsma <jjongsma@redhat.com>
+---
+ vdagent/vdagent.cpp | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/vdagent/vdagent.cpp b/vdagent/vdagent.cpp
+index 64055c4..fc8e727 100644
+--- a/vdagent/vdagent.cpp
++++ b/vdagent/vdagent.cpp
+@@ -255,7 +255,6 @@ DWORD WINAPI VDAgent::event_thread_proc(LPVOID param)
+ bool VDAgent::run()
+ {
+     DWORD session_id;
+-    DWORD event_thread_id;
+     HANDLE event_thread;
+     WNDCLASS wcls;
+ 
+@@ -322,7 +321,7 @@ bool VDAgent::run()
+         return false;
+     }
+     _running = true;
+-    event_thread = CreateThread(NULL, 0, event_thread_proc, this, 0, &event_thread_id);
++    event_thread = CreateThread(NULL, 0, event_thread_proc, this, 0, NULL);
+     if (!event_thread) {
+         vd_printf("CreateThread() failed: %lu", GetLastError());
+         cleanup();
+-- 
+2.17.1
+

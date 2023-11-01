@@ -1,0 +1,54 @@
+From 0ac9d687e92165f6274786e5f5485cc65ae5c34a Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Sat, 30 Jun 2018 05:48:02 +0100
+Subject: [PATCH 39/43] Introduce an helper to close VirtIo device
+
+Do not assume we allocated the handle doing the cleanup.
+This utility will be reused in next patch.
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Christophe de Dinechin <dinechin@redhat.com>
+Acked-by: Christophe Fergeau <cfergeau@redhat.com>
+---
+ vdagent/vdagent.cpp | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/vdagent/vdagent.cpp b/vdagent/vdagent.cpp
+index eed3103..69d61da 100644
+--- a/vdagent/vdagent.cpp
++++ b/vdagent/vdagent.cpp
+@@ -110,6 +110,7 @@ private:
+     bool write_message(uint32_t type, uint32_t size, void* data);
+     bool write_clipboard(VDAgentMessage* msg, uint32_t size);
+     bool init_vio_serial();
++    void close_vio_serial();
+     bool send_input();
+     void set_display_depth(uint32_t depth);
+     void load_display_setting();
+@@ -343,7 +344,7 @@ bool VDAgent::run()
+ void VDAgent::cleanup()
+ {
+     FreeLibrary(_user_lib);
+-    CloseHandle(_vio_serial);
++    close_vio_serial();
+ }
+ 
+ void VDAgent::set_control_event(control_command_t control_command)
+@@ -1227,6 +1228,14 @@ bool VDAgent::init_vio_serial()
+     return true;
+ }
+ 
++void VDAgent::close_vio_serial()
++{
++    if (_vio_serial != INVALID_HANDLE_VALUE) {
++        CloseHandle(_vio_serial);
++        _vio_serial = INVALID_HANDLE_VALUE;
++    }
++}
++
+ void VDAgent::dispatch_message(VDAgentMessage* msg, uint32_t port)
+ {
+     bool res = true;
+-- 
+2.17.1
+

@@ -1,0 +1,27 @@
+From bc3384f359765fe84aa8e53e0330886d5b6e42f3 Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Sat, 30 Jun 2018 06:02:27 +0100
+Subject: [PATCH 23/43] Use proper type for _clipboard_owner
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Christophe de Dinechin <dinechin@redhat.com>
+---
+ vdagent/vdagent.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/vdagent/vdagent.cpp b/vdagent/vdagent.cpp
+index 1e8f27c..78c42d1 100644
+--- a/vdagent/vdagent.cpp
++++ b/vdagent/vdagent.cpp
+@@ -129,7 +129,7 @@ private:
+     PCLIPBOARD_OP _add_clipboard_listener;
+     PCLIPBOARD_OP _remove_clipboard_listener;
+     int _system_version;
+-    int _clipboard_owner;
++    clipboard_owner_t _clipboard_owner;
+     DWORD _clipboard_tick;
+     VDAgentMouseState _new_mouse = {};
+     VDAgentMouseState _last_mouse = {};
+-- 
+2.17.1
+

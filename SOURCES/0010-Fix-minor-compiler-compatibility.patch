@@ -1,0 +1,38 @@
+From 1982d50375e4f3fdf5d5ca5e497328743af4e559 Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Sat, 26 May 2018 07:51:59 +0100
+Subject: [PATCH 10/43] Fix minor compiler compatibility
+
+Ensure std::min is declared including directly algorithm header.
+Undefine possible min and max macros, some Windows headers define them.
+Currently happens using Visual Studio 2015.
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Christophe Fergeau <cfergeau@redhat.com>
+---
+ vdagent/image.cpp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/vdagent/image.cpp b/vdagent/image.cpp
+index 1b21b53..c0bcdb5 100644
+--- a/vdagent/image.cpp
++++ b/vdagent/image.cpp
+@@ -18,11 +18,15 @@
+ #include <spice/macros.h>
+ #include <memory>
+ #include <vector>
++#include <algorithm>
+ 
+ #include "vdcommon.h"
+ #include "image.h"
+ #include "imagepng.h"
+ 
++#undef max
++#undef min
++
+ static ImageCoder *get_coder(uint32_t vdagent_type)
+ {
+     switch (vdagent_type) {
+-- 
+2.17.1
+

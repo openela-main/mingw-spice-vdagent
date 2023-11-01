@@ -1,0 +1,29 @@
+From 14769f88c923945aba4aa257f9a8632a5b685210 Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Tue, 29 May 2018 10:29:52 +0100
+Subject: [PATCH 19/43] vdservice: Do not append line terminator to log
+
+vd_printf already add a line terminator
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Jonathon Jongsma <jjongsma@redhat.com>
+---
+ vdservice/vdservice.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/vdservice/vdservice.cpp b/vdservice/vdservice.cpp
+index ec6243e..7564fbb 100644
+--- a/vdservice/vdservice.cpp
++++ b/vdservice/vdservice.cpp
+@@ -337,7 +337,7 @@ VOID WINAPI VDService::main(DWORD argc, TCHAR* argv[])
+     s->_status_handle = RegisterServiceCtrlHandlerEx(VD_SERVICE_NAME, &VDService::control_handler,
+                                                      s);
+     if (!s->_status_handle) {
+-        vd_printf("RegisterServiceCtrlHandler failed\n");
++        vd_printf("RegisterServiceCtrlHandler failed");
+         return;
+     }
+ 
+-- 
+2.17.1
+

@@ -1,0 +1,29 @@
+From 022c56ac6ae2f7f9a082b81e44872d48aace35b2 Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Sat, 26 May 2018 07:50:53 +0100
+Subject: [PATCH 11/43] Avoid unused variable warning
+
+Currently happens using Visual Studio 2015.
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Christophe Fergeau <cfergeau@redhat.com>
+---
+ vdagent/display_configuration.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/vdagent/display_configuration.cpp b/vdagent/display_configuration.cpp
+index 6e7624b..cdbbe23 100644
+--- a/vdagent/display_configuration.cpp
++++ b/vdagent/display_configuration.cpp
+@@ -259,7 +259,7 @@ DisplayConfig* DisplayConfig::create_config()
+     try {
+         new_interface = new  WDDMInterface();
+     }
+-    catch (std::exception& e) {
++    catch (std::exception&) {
+         new_interface = new XPDMInterface();
+     }
+     return new_interface;
+-- 
+2.17.1
+

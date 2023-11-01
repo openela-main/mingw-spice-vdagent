@@ -1,0 +1,44 @@
+From b15a8806390153748594937f321c192181f9000f Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Fri, 25 May 2018 19:47:32 +0100
+Subject: [PATCH 09/43] vcproj: Add some missing files
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Christophe Fergeau <cfergeau@redhat.com>
+---
+ vdagent/vdagent.vcproj | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/vdagent/vdagent.vcproj b/vdagent/vdagent.vcproj
+index f830b0f..376ddd4 100644
+--- a/vdagent/vdagent.vcproj
++++ b/vdagent/vdagent.vcproj
+@@ -349,6 +349,10 @@
+ 				RelativePath=".\desktop_layout.cpp"
+ 				>
+ 			</File>
++			<File
++				RelativePath=".\display_configuration.cpp"
++				>
++			</File>
+ 			<File
+ 				RelativePath=".\display_setting.cpp"
+ 				>
+@@ -357,6 +361,14 @@
+ 				RelativePath=".\file_xfer.cpp"
+ 				>
+ 			</File>
++			<File
++				RelativePath=".\image.cpp"
++				>
++			</File>
++			<File
++				RelativePath=".\imagepng.cpp"
++				>
++			</File>
+ 			<File
+ 				RelativePath=".\vdagent.cpp"
+ 				>
+-- 
+2.17.1
+

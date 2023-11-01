@@ -1,0 +1,89 @@
+From 16aee83802ee436cc5216bd55cb8f7760c30f50a Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Tue, 22 Aug 2017 12:58:25 +0100
+Subject: [PATCH 03/43] imagetest: Save BMP file using BitmapCoder
+
+This allows to test BitmapCoder::from_bitmap.
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Uri Lublin <uril@redhat.com>
+---
+ vdagent/image.cpp     |  2 --
+ vdagent/image.h       |  2 ++
+ vdagent/imagetest.cpp | 20 ++++++--------------
+ 3 files changed, 8 insertions(+), 16 deletions(-)
+
+diff --git a/vdagent/image.cpp b/vdagent/image.cpp
+index 15bd4fa..1b21b53 100644
+--- a/vdagent/image.cpp
++++ b/vdagent/image.cpp
+@@ -23,8 +23,6 @@
+ #include "image.h"
+ #include "imagepng.h"
+ 
+-ImageCoder *create_bitmap_coder();
+-
+ static ImageCoder *get_coder(uint32_t vdagent_type)
+ {
+     switch (vdagent_type) {
+diff --git a/vdagent/image.h b/vdagent/image.h
+index da549d3..326d7f9 100644
+--- a/vdagent/image.h
++++ b/vdagent/image.h
+@@ -39,6 +39,8 @@ static inline size_t compute_dib_stride(unsigned int width, unsigned int bit_cou
+     return ((width * bit_count + 31u) & ~31u) / 8u;
+ }
+ 
++ImageCoder *create_bitmap_coder();
++
+ /**
+  * Returns image to put in the clipboard.
+  *
+diff --git a/vdagent/imagetest.cpp b/vdagent/imagetest.cpp
+index 3a553a9..36b8f6c 100644
+--- a/vdagent/imagetest.cpp
++++ b/vdagent/imagetest.cpp
+@@ -18,6 +18,7 @@
+ #undef NDEBUG
+ #include <assert.h>
+ #include <vector>
++#include <memory>
+ 
+ #include "vdcommon.h"
+ #include "image.h"
+@@ -42,7 +43,7 @@ save_dib_to_file(ImageCoder& coder, const uint8_t *raw_dib, const char *filename
+ 
+ int main(int argc, char **argv)
+ {
+-    ImageCoder *coder = create_png_coder();
++    std::unique_ptr<ImageCoder> coder(create_png_coder());
+ 
+     assert(coder);
+     if (argc < 2) {
+@@ -68,19 +69,10 @@ int main(int argc, char **argv)
+     memset(&out[0], 0xcc, dib_size);
+     coder->get_dib_data(&out[0], &data[0], len);
+ 
+-    // looks like many tools wants this header so craft it
+-    BITMAPFILEHEADER head;
+-    memset(&head, 0, sizeof(head));
+-    head.bfType = 'B'+'M'*256u;
+-    head.bfSize = sizeof(head) + dib_size;
+-    BITMAPINFOHEADER& info(*(BITMAPINFOHEADER*)&out[0]);
+-    head.bfOffBits = sizeof(head) + sizeof(BITMAPINFOHEADER) + 4 * info.biClrUsed;
+-
+-    f = fopen(argc > 2 ? argv[2] : "out.bmp", "wb");
+-    assert(f);
+-    assert(fwrite(&head, 1, sizeof(head), f) == sizeof(head));
+-    assert(fwrite(&out[0], 1, dib_size, f) == dib_size);
+-    fclose(f);
++    // write BMP file
++    std::unique_ptr<ImageCoder> bmp_coder(create_bitmap_coder());
++    assert(bmp_coder);
++    save_dib_to_file(*bmp_coder, &out[0], argc > 2 ? argv[2] : "out.bmp");
+ 
+     // convert back to PNG
+     save_dib_to_file(*coder, &out[0], argc > 3 ? argv[3] : "out.png");
+-- 
+2.17.1
+

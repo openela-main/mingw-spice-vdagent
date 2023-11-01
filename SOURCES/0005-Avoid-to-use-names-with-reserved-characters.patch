@@ -1,0 +1,63 @@
+From e2ced9f094bf676856ae78779f4a791936eb535f Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Mon, 5 Sep 2016 14:51:56 +0100
+Subject: [PATCH 05/43] Avoid to use names with reserved characters.
+
+Some characters are reserved and should not be used in Windows
+independently by the file system used.
+This avoid to use paths in the filename which could lead to some
+nasty hacks (like names like "..\hack.txt").
+The return statement cause the file transfer to be aborted with
+VD_AGENT_FILE_XFER_STATUS_ERROR as status.
+
+":" is used to separate filenames from stream names and can be used
+to create hidden streams. Also is used for drive separator (A:)
+or device names (NUL:).
+"/" and "\" are reserved for components (directory, filename, drive,
+share, server) separators.
+"*" and "?" are wildcards (which on Windows are supported by
+different APIs too).
+"<", ">", """ and "|" are reserved for shell usage.
+
+More information on "Naming Files, Paths, and Namespaces" page at
+https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
+
+This fixes also https://bugzilla.redhat.com/show_bug.cgi?id=1520393.
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Christophe Fergeau <cfergeau@redhat.com>
+---
+ vdagent/file_xfer.cpp | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/vdagent/file_xfer.cpp b/vdagent/file_xfer.cpp
+index e877cca..8203b99 100644
+--- a/vdagent/file_xfer.cpp
++++ b/vdagent/file_xfer.cpp
+@@ -33,6 +33,12 @@
+ #include "file_xfer.h"
+ #include "as_user.h"
+ 
++#define FILENAME_RESERVED_CHAR_LIST \
++    ":" /* streams and devices */ \
++    "/\\" /* components separator */ \
++    "?*" /* wildcards */ \
++    "<>\"|" /* reserved to shell */
++
+ void FileXfer::reset()
+ {
+     FileXferTasks::iterator iter;
+@@ -72,6 +78,10 @@ void FileXfer::handle_start(VDAgentFileXferStartMessage* start,
+         return;
+     }
+     vd_printf("%u %s (%" PRIu64 ")", start->id, file_name, file_size);
++    if (strcspn(file_name, FILENAME_RESERVED_CHAR_LIST) != strlen(file_name)) {
++        vd_printf("filename contains invalid characters");
++        return;
++    }
+     if (!as_user.begin()) {
+         vd_printf("as_user failed");
+         return;
+-- 
+2.17.1
+

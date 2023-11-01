@@ -1,0 +1,67 @@
+From 7b368a134fac63f4e603969694b83c916df04e17 Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Sat, 26 May 2018 07:55:12 +0100
+Subject: [PATCH 30/43] Allow one more character reading strings from registry
+
+The strings in the registry are usually NUL-terminated but this
+is not a requirement.
+Handle the case when the string, considering the terminator, fit
+into the reading buffer. In this case accept the string. In the
+case the string fit into the buffer but is not terminated
+returns ERROR_MORE_DATA (the error that would be returned if the
+string didn't fit in the buffer as there is no place to add the
+terminator).
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Jonathon Jongsma <jjongsma@redhat.com>
+---
+ vdagent/display_setting.cpp | 22 +++++++++++++++-------
+ 1 file changed, 15 insertions(+), 7 deletions(-)
+
+diff --git a/vdagent/display_setting.cpp b/vdagent/display_setting.cpp
+index 78c67d6..b6711d7 100644
+--- a/vdagent/display_setting.cpp
++++ b/vdagent/display_setting.cpp
+@@ -290,11 +290,25 @@ bool DisplaySetting::disable_wallpaper()
+ 
+ static bool RegReadString(HKEY key, const TCHAR *name, TCHAR *buffer, size_t buffer_len)
+ {
+-    DWORD value_size = (buffer_len - 1) * sizeof(buffer[0]);
++    DWORD value_size = buffer_len * sizeof(buffer[0]);
+     DWORD value_type;
+     LONG status;
+ 
+     status = RegQueryValueEx(key, name, NULL, &value_type, (LPBYTE)buffer, &value_size);
++    if (status == ERROR_SUCCESS && value_type == REG_SZ) {
++        // ensure NUL-terminated
++        value_size /= sizeof(buffer[0]);
++        if (value_size == buffer_len) {
++            // full buffer but not terminated?
++            if (buffer[value_size-1] != '\0') {
++                status = ERROR_MORE_DATA;
++            }
++        } else {
++            // append a NUL. If there's already a NUL character this
++            // new one will be ignored
++            buffer[value_size] = '\0';
++        }
++    }
+     if (status != ERROR_SUCCESS) {
+         vd_printf("RegQueryValueEx(%" PRIsTSTR ") : fail %ld", name, status);
+         return false;
+@@ -305,12 +319,6 @@ static bool RegReadString(HKEY key, const TCHAR *name, TCHAR *buffer, size_t buf
+         return false;
+     }
+ 
+-    // assure NUL-terminated
+-    value_size /= sizeof(buffer[0]);
+-    if (!value_size || buffer[value_size - 1] != '\0') {
+-        buffer[value_size] = '\0';
+-    }
+-
+     return true;
+ }
+ 
+-- 
+2.17.1
+

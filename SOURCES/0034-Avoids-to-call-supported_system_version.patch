@@ -1,0 +1,61 @@
+From 55290d17666d2237896ba0c8cd9c028ddc29f5c9 Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Sat, 30 Jun 2018 09:14:08 +0100
+Subject: [PATCH 34/43] Avoids to call supported_system_version()
+
+The only reason we call this function is to check if the
+system should support some APIs.
+Instead just check directly if these APIs are supported
+calling GetProcAddress directly.
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Jonathon Jongsma <jjongsma@redhat.com>
+---
+ vdagent/vdagent.cpp | 30 +++++++++++++++---------------
+ 1 file changed, 15 insertions(+), 15 deletions(-)
+
+diff --git a/vdagent/vdagent.cpp b/vdagent/vdagent.cpp
+index 95783c1..423c3ee 100644
+--- a/vdagent/vdagent.cpp
++++ b/vdagent/vdagent.cpp
+@@ -268,22 +268,22 @@ bool VDAgent::run()
+     if (!SetProcessShutdownParameters(0x100, 0)) {
+         vd_printf("SetProcessShutdownParameters failed %lu", GetLastError());
+     }
+-    if (supported_system_version() == SYS_VER_WIN_7_CLASS) {
+-        _user_lib = LoadLibrary(L"User32.dll");
+-        if (!_user_lib) {
+-            vd_printf("LoadLibrary failed %lu", GetLastError());
+-            return false;
+-        }
+-        _add_clipboard_listener =
+-            (PCLIPBOARD_OP)GetProcAddress(_user_lib, "AddClipboardFormatListener");
+-        _remove_clipboard_listener =
+-            (PCLIPBOARD_OP)GetProcAddress(_user_lib, "RemoveClipboardFormatListener");
+-        if (!_add_clipboard_listener || !_remove_clipboard_listener) {
+-            vd_printf("GetProcAddress failed %lu", GetLastError());
+-            cleanup();
+-            return false;
+-        }
++
++    _user_lib = LoadLibrary(L"User32.dll");
++    if (!_user_lib) {
++        vd_printf("LoadLibrary failed %lu", GetLastError());
++        return false;
+     }
++    _add_clipboard_listener =
++        (PCLIPBOARD_OP)GetProcAddress(_user_lib, "AddClipboardFormatListener");
++    _remove_clipboard_listener =
++        (PCLIPBOARD_OP)GetProcAddress(_user_lib, "RemoveClipboardFormatListener");
++    // do not use FormatListener APIs if not available
++    if (!_add_clipboard_listener || !_remove_clipboard_listener) {
++        _add_clipboard_listener = nullptr;
++        _remove_clipboard_listener = nullptr;
++    }
++
+     if (!_control_event)
+         _control_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+     if (!_control_event) {
+-- 
+2.17.1
+

@@ -1,0 +1,86 @@
+From df20de186c5a014c4064a4f6e57bd53493c37348 Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Tue, 29 May 2018 01:01:23 +0100
+Subject: [PATCH 36/43] vdlog: Factor our a "logf" function to avoid long "LOG"
+ macro
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Jonathon Jongsma <jjongsma@redhat.com>
+---
+ common/vdlog.cpp | 26 ++++++++++++++++++++++++++
+ common/vdlog.h   | 15 +++++----------
+ 2 files changed, 31 insertions(+), 10 deletions(-)
+
+diff --git a/common/vdlog.cpp b/common/vdlog.cpp
+index 8af6dcc..8c11d33 100644
+--- a/common/vdlog.cpp
++++ b/common/vdlog.cpp
+@@ -79,6 +79,32 @@ void VDLog::printf(const char* format, ...)
+     fflush(fh);
+ }
+ 
++void VDLog::logf(const char *type, const char *function, const char* format, ...)
++{
++    FILE *fh = _log ? _log->_handle : stdout;
++    va_list args;
++
++    struct _timeb now;
++    struct tm today;
++    char datetime_str[20];
++    _ftime_s(&now);
++    localtime_s(&today, &now.time);
++    strftime(datetime_str, 20, "%Y-%m-%d %H:%M:%S", &today);
++
++    _lock_file(fh);
++    fprintf(fh, "%lu::%s::%s,%.3d::%s::",
++            GetCurrentThreadId(), type,
++            datetime_str,
++            now.millitm,
++            function);
++
++    va_start(args, format);
++    vfprintf(fh, format, args);
++    va_end(args);
++    _unlock_file(fh);
++    fflush(fh);
++}
++
+ void log_version()
+ {
+     // print same version as resource one
+diff --git a/common/vdlog.h b/common/vdlog.h
+index d017ac3..c80a199 100644
+--- a/common/vdlog.h
++++ b/common/vdlog.h
+@@ -35,6 +35,10 @@ public:
+     __attribute__((__format__ (gnu_printf, 1, 2)))
+ #endif
+     static void printf(const char* format, ...);
++#ifdef __GNUC__
++    __attribute__((__format__ (gnu_printf, 3, 4)))
++#endif
++    static void logf(const char *type, const char *function, const char* format, ...);
+ 
+ private:
+     VDLog(FILE* handle);
+@@ -60,16 +64,7 @@ static const VDLogLevel log_level = LOG_INFO;
+ 
+ #define LOG(type, format, ...) do {                                     \
+     if (LOG_ ## type >= log_level && LOG_ ## type <= LOG_FATAL) {       \
+-        struct _timeb now;                                              \
+-        struct tm today;                                                \
+-        char datetime_str[20];                                          \
+-        _ftime_s(&now);                                                 \
+-        localtime_s(&today, &now.time);                                 \
+-        strftime(datetime_str, 20, "%Y-%m-%d %H:%M:%S", &today);        \
+-        VDLog::printf("%lu::%s::%s,%.3d::%s::" format "\n",             \
+-                      GetCurrentThreadId(), #type,                      \
+-                      datetime_str, now.millitm,                        \
+-                      __FUNCTION__, ## __VA_ARGS__);                    \
++        VDLog::logf(#type, __FUNCTION__, format "\n", ## __VA_ARGS__);  \
+     }                                                                   \
+ } while(0)
+ 
+-- 
+2.17.1
+
