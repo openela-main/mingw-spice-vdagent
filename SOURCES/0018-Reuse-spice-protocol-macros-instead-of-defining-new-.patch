@@ -1,0 +1,54 @@
+From 531dd85f60e3de8fd6deddc820f3f6a92d83186c Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Mon, 28 May 2018 10:50:14 +0100
+Subject: [PATCH 18/43] Reuse spice-protocol macros instead of defining new
+ ones for alignment
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Jonathon Jongsma <jjongsma@redhat.com>
+---
+ common/vdcommon.h   | 8 --------
+ vdagent/vdagent.cpp | 6 ++++--
+ 2 files changed, 4 insertions(+), 10 deletions(-)
+
+diff --git a/common/vdcommon.h b/common/vdcommon.h
+index c1920e9..ac58efe 100644
+--- a/common/vdcommon.h
++++ b/common/vdcommon.h
+@@ -67,14 +67,6 @@ typedef Mutex mutex_t;
+ #define VD_AGENT_REGISTRY_KEY "SOFTWARE\\Red Hat\\Spice\\vdagent\\"
+ #define VD_AGENT_STOP_EVENT   TEXT("Global\\vdagent_stop_event")
+ 
+-#if defined __GNUC__
+-#define ALIGN_GCC __attribute__ ((packed))
+-#define ALIGN_VC
+-#else
+-#define ALIGN_GCC
+-#define ALIGN_VC __declspec (align(1))
+-#endif
+-
+ /*
+  * Note: OLDMSVCRT, which is defined (in the Makefile) for mingw builds, and
+  * is not defined for Visual Studio builds.
+diff --git a/vdagent/vdagent.cpp b/vdagent/vdagent.cpp
+index ca1f8fa..e22687c 100644
+--- a/vdagent/vdagent.cpp
++++ b/vdagent/vdagent.cpp
+@@ -55,10 +55,12 @@ static const VDClipboardFormat clipboard_formats[] = {
+ 
+ #define clipboard_formats_count SPICE_N_ELEMENTS(clipboard_formats)
+ 
+-typedef struct ALIGN_VC VDIChunk {
++#include <spice/start-packed.h>
++typedef struct SPICE_ATTR_PACKED VDIChunk {
+     VDIChunkHeader hdr;
+     uint8_t data[0];
+-} ALIGN_GCC VDIChunk;
++} VDIChunk;
++#include <spice/end-packed.h>
+ 
+ #define VD_MESSAGE_HEADER_SIZE (sizeof(VDIChunk) + sizeof(VDAgentMessage))
+ #define VD_READ_BUF_SIZE       (sizeof(VDIChunk) + VD_AGENT_MAX_DATA_SIZE)
+-- 
+2.17.1
+

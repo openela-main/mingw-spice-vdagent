@@ -1,0 +1,46 @@
+From 9ddddf205f61b3451f37867a3bf7db455c773e53 Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Tue, 29 May 2018 01:01:23 +0100
+Subject: [PATCH 37/43] vdlog: Use GetLocalTime instead of multiple C functions
+
+The GetLocalTime function already returns all information we
+need for the log, no needs to call multiple C functions.
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Jonathon Jongsma <jjongsma@redhat.com>
+---
+ common/vdlog.cpp | 15 ++++++---------
+ 1 file changed, 6 insertions(+), 9 deletions(-)
+
+diff --git a/common/vdlog.cpp b/common/vdlog.cpp
+index 8c11d33..e2561e2 100644
+--- a/common/vdlog.cpp
++++ b/common/vdlog.cpp
+@@ -84,18 +84,15 @@ void VDLog::logf(const char *type, const char *function, const char* format, ...
+     FILE *fh = _log ? _log->_handle : stdout;
+     va_list args;
+ 
+-    struct _timeb now;
+-    struct tm today;
+-    char datetime_str[20];
+-    _ftime_s(&now);
+-    localtime_s(&today, &now.time);
+-    strftime(datetime_str, 20, "%Y-%m-%d %H:%M:%S", &today);
++    SYSTEMTIME st;
++    GetLocalTime(&st);
+ 
+     _lock_file(fh);
+-    fprintf(fh, "%lu::%s::%s,%.3d::%s::",
++    fprintf(fh, "%lu::%s::%.4u-%.2u-%.2u %.2u:%.2u:%.2u,%.3u::%s::",
+             GetCurrentThreadId(), type,
+-            datetime_str,
+-            now.millitm,
++            st.wYear, st.wMonth, st.wDay,
++            st.wHour, st.wMinute, st.wSecond,
++            st.wMilliseconds,
+             function);
+ 
+     va_start(args, format);
+-- 
+2.17.1
+

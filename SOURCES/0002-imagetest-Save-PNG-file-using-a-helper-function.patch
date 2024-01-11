@@ -1,0 +1,62 @@
+From 9c85f8d3caf826099d8a1db562e23e5cf4e8b243 Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Tue, 22 Aug 2017 12:57:16 +0100
+Subject: [PATCH 02/43] imagetest: Save PNG file using a helper function
+
+This allows to reuse the code to save a DIB to a file.
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Uri Lublin <uril@redhat.com>
+---
+ vdagent/imagetest.cpp | 28 ++++++++++++++++++----------
+ 1 file changed, 18 insertions(+), 10 deletions(-)
+
+diff --git a/vdagent/imagetest.cpp b/vdagent/imagetest.cpp
+index 319b188..3a553a9 100644
+--- a/vdagent/imagetest.cpp
++++ b/vdagent/imagetest.cpp
+@@ -23,6 +23,23 @@
+ #include "image.h"
+ #include "imagepng.h"
+ 
++static void
++save_dib_to_file(ImageCoder& coder, const uint8_t *raw_dib, const char *filename)
++{
++    const BITMAPINFO& info(*(BITMAPINFO*) raw_dib);
++    const uint8_t *raw_bits = &raw_dib[sizeof(BITMAPINFOHEADER) + 4 * info.bmiHeader.biClrUsed];
++
++    long size = 0;
++    uint8_t *raw_file = coder.from_bitmap(info, raw_bits, size);
++    assert(raw_file && size > 0);
++
++    FILE *f = fopen(filename, "wb");
++    assert(f);
++    assert(fwrite(raw_file, 1, size, f) == (unsigned long) size);
++    fclose(f);
++    free(raw_file);
++}
++
+ int main(int argc, char **argv)
+ {
+     ImageCoder *coder = create_png_coder();
+@@ -66,16 +83,7 @@ int main(int argc, char **argv)
+     fclose(f);
+ 
+     // convert back to PNG
+-    long png_size = 0;
+-    uint8_t *png = coder->from_bitmap(*((BITMAPINFO*)&out[0]), &out[sizeof(BITMAPINFOHEADER) + 4 * info.biClrUsed], png_size);
+-    assert(png && png_size > 0);
+-
+-    f = fopen(argc > 3 ? argv[3] : "out.png", "wb");
+-    assert(f);
+-    assert(fwrite(png, 1, png_size, f) == (unsigned long) png_size);
+-    fclose(f);
+-    free(png);
+-    png = NULL;
++    save_dib_to_file(*coder, &out[0], argc > 3 ? argv[3] : "out.png");
+ 
+     return 0;
+ }
+-- 
+2.17.1
+

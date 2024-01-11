@@ -1,0 +1,130 @@
+From 7b0c48b15bfe3c02c4158c7cb213403739d078b5 Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Fri, 25 May 2018 23:03:18 +0100
+Subject: [PATCH 16/43] file_xfer: Use shared_ptr to simplify memory management
+
+Clear automatically tasks items.
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Christophe Fergeau <cfergeau@redhat.com>
+---
+ vdagent/file_xfer.cpp | 25 ++++---------------------
+ vdagent/file_xfer.h   |  3 ++-
+ 2 files changed, 6 insertions(+), 22 deletions(-)
+
+diff --git a/vdagent/file_xfer.cpp b/vdagent/file_xfer.cpp
+index ff4c0b9..ada3b47 100644
+--- a/vdagent/file_xfer.cpp
++++ b/vdagent/file_xfer.cpp
+@@ -41,19 +41,11 @@
+ 
+ void FileXfer::reset()
+ {
+-    FileXferTasks::iterator iter;
+-    FileXferTask* task;
+-
+-    for (iter = _tasks.begin(); iter != _tasks.end(); iter++) {
+-        task = iter->second;
+-        delete task;
+-    }
+     _tasks.clear();
+ }
+ 
+ FileXfer::~FileXfer()
+ {
+-    reset();
+ }
+ 
+ void FileXfer::handle_start(VDAgentFileXferStartMessage* start,
+@@ -63,7 +55,6 @@ void FileXfer::handle_start(VDAgentFileXferStartMessage* start,
+     TCHAR file_path[MAX_PATH];
+     char file_name[MAX_PATH];
+     ULARGE_INTEGER free_bytes;
+-    FileXferTask* task;
+     uint64_t file_size;
+     HANDLE handle;
+     AsUser as_user;
+@@ -146,7 +137,7 @@ void FileXfer::handle_start(VDAgentFileXferStartMessage* start,
+         vd_printf("Failed creating %ls. More than 63 copies exist?", file_path);
+         return;
+     }
+-    task = new FileXferTask(handle, file_size, file_path);
++    auto task = std::make_shared<FileXferTask>(handle, file_size, file_path);
+     _tasks[start->id] = task;
+     status->result = VD_AGENT_FILE_XFER_STATUS_CAN_SEND_DATA;
+ }
+@@ -155,7 +146,6 @@ bool FileXfer::handle_data(VDAgentFileXferDataMessage* data,
+                            VDAgentFileXferStatusMessage* status)
+ {
+     FileXferTasks::iterator iter;
+-    FileXferTask* task = NULL;
+     DWORD written;
+ 
+     status->id = data->id;
+@@ -163,9 +153,9 @@ bool FileXfer::handle_data(VDAgentFileXferDataMessage* data,
+     iter = _tasks.find(data->id);
+     if (iter == _tasks.end()) {
+         vd_printf("file id %u not found", data->id);
+-        goto fin;
++        return true;
+     }
+-    task = iter->second;
++    auto task = iter->second;
+     task->pos += data->size;
+     if (task->pos > task->size) {
+         vd_printf("file xfer is longer than expected");
+@@ -184,11 +174,7 @@ bool FileXfer::handle_data(VDAgentFileXferDataMessage* data,
+     status->result = VD_AGENT_FILE_XFER_STATUS_SUCCESS;
+ 
+ fin:
+-    if (task) {
+-        _tasks.erase(iter);
+-        delete task;
+-    }
+-
++    _tasks.erase(iter);
+     return true;
+ }
+ 
+@@ -212,7 +198,6 @@ void FileXferTask::success()
+ void FileXfer::handle_status(VDAgentFileXferStatusMessage* status)
+ {
+     FileXferTasks::iterator iter;
+-    FileXferTask* task;
+ 
+     vd_printf("id %u result %u", status->id, status->result);
+     if (status->result != VD_AGENT_FILE_XFER_STATUS_CANCELLED) {
+@@ -224,9 +209,7 @@ void FileXfer::handle_status(VDAgentFileXferStatusMessage* status)
+         vd_printf("file id %u not found", status->id);
+         return;
+     }
+-    task = iter->second;
+     _tasks.erase(iter);
+-    delete task;
+ }
+ 
+ bool FileXfer::dispatch(VDAgentMessage* msg, VDAgentFileXferStatusMessage* status)
+diff --git a/vdagent/file_xfer.h b/vdagent/file_xfer.h
+index 41f677a..b138019 100644
+--- a/vdagent/file_xfer.h
++++ b/vdagent/file_xfer.h
+@@ -19,6 +19,7 @@
+ #define _H_FILE_XFER
+ 
+ #include <map>
++#include <memory>
+ #include "vdcommon.h"
+ 
+ struct FileXferTask {
+@@ -40,7 +41,7 @@ struct FileXferTask {
+     void success();
+ };
+ 
+-typedef std::map<uint32_t, FileXferTask*> FileXferTasks;
++typedef std::map<uint32_t, std::shared_ptr<FileXferTask> > FileXferTasks;
+ 
+ class FileXfer {
+ public:
+-- 
+2.17.1
+

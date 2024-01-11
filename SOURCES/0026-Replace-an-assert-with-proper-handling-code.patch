@@ -1,0 +1,33 @@
+From 18cbe9f306f6dcfeeb4952e278dd88e2520d87f6 Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Fri, 29 Jun 2018 08:02:02 +0100
+Subject: [PATCH 26/43] Replace an assert with proper handling code
+
+Make sure the condition is handled properly.
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Jonathon Jongsma <jjongsma@redhat.com>
+---
+ vdagent/vdagent.cpp | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/vdagent/vdagent.cpp b/vdagent/vdagent.cpp
+index 9fbff3d..7b3720d 100644
+--- a/vdagent/vdagent.cpp
++++ b/vdagent/vdagent.cpp
+@@ -1412,7 +1412,11 @@ void VDAgent::handle_chunk(VDIChunk* chunk)
+ 
+         // got just the start, start to collapse all chunks into a
+         // single buffer
+-        ASSERT(chunk->hdr.size < msg_size);
++        if (chunk->hdr.size >= msg_size) {
++            vd_printf("Invalid VDAgentMessage message");
++            _running = false;
++            return;
++        }
+         _in_msg = (VDAgentMessage*)new uint8_t[msg_size];
+         memcpy(_in_msg, chunk->data, chunk->hdr.size);
+         _in_msg_pos = chunk->hdr.size;
+-- 
+2.17.1
+

@@ -1,0 +1,60 @@
+From 6a0683707f3fcebcca3d3e5aced46ec3024f3784 Mon Sep 17 00:00:00 2001
+From: Frediano Ziglio <fziglio@redhat.com>
+Date: Sat, 30 Jun 2018 05:31:13 +0100
+Subject: [PATCH 31/43] Allocate _control_event and _stop_event just once
+
+Handle _control_event and _stop_event destruction in destructor.
+Allows to call VDAgent::run multiple time if needed.
+
+Signed-off-by: Frediano Ziglio <fziglio@redhat.com>
+Acked-by: Jonathon Jongsma <jjongsma@redhat.com>
+---
+ vdagent/vdagent.cpp | 13 +++++++++----
+ 1 file changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/vdagent/vdagent.cpp b/vdagent/vdagent.cpp
+index 1a68e0c..64055c4 100644
+--- a/vdagent/vdagent.cpp
++++ b/vdagent/vdagent.cpp
+@@ -224,6 +224,8 @@ VDAgent::VDAgent()
+ 
+ VDAgent::~VDAgent()
+ {
++    CloseHandle(_stop_event);
++    CloseHandle(_control_event);
+     delete _log;
+ }
+ 
+@@ -285,13 +287,18 @@ bool VDAgent::run()
+             return false;
+         }
+     }
+-    _control_event = CreateEvent(NULL, FALSE, FALSE, NULL);
++    if (!_control_event)
++        _control_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+     if (!_control_event) {
+         vd_printf("CreateEvent() failed: %lu", GetLastError());
+         cleanup();
+         return false;
+     }
+-    _stop_event = OpenEvent(SYNCHRONIZE, FALSE, VD_AGENT_STOP_EVENT);
++    ResetEvent(_control_event);
++
++    if (!_stop_event)
++        _stop_event = OpenEvent(SYNCHRONIZE, FALSE, VD_AGENT_STOP_EVENT);
++
+     memset(&wcls, 0, sizeof(wcls));
+     wcls.lpfnWndProc = &VDAgent::wnd_proc;
+     wcls.lpszClassName = VD_AGENT_WINCLASS_NAME;
+@@ -339,8 +346,6 @@ bool VDAgent::run()
+ void VDAgent::cleanup()
+ {
+     FreeLibrary(_user_lib);
+-    CloseHandle(_stop_event);
+-    CloseHandle(_control_event);
+     CloseHandle(_vio_serial);
+ }
+ 
+-- 
+2.17.1
+
